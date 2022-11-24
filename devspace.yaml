@@ -1,0 +1,52 @@
+version: v2beta1
+name: devspace-quickstart-golang
+
+dependencies:
+  db:
+    path: ./db
+
+pipelines:
+  dev: |
+    run_dependency_pipelines --all --pipeline mysql-port-fwd
+    run_default_pipeline dev
+  
+
+images:
+  app:
+    image: ghcr.io/loft-sh/devspace-quickstart-golang/app
+    dockerfile: ./Dockerfile
+
+deployments:
+  app:
+    helm:
+      chart:
+        name: component-chart
+        repo: https://charts.devspace.sh
+      values:
+        containers:
+          - image: ghcr.io/loft-sh/devspace-quickstart-golang/app
+        service:
+          ports:
+            - port: 8080
+
+dev:
+  app:
+    imageSelector: ghcr.io/loft-sh/devspace-quickstart-golang/app
+    devImage: ghcr.io/loft-sh/devspace-containers/go:1.18-alpine
+    sync:
+      - path: ./
+        uploadExcludeFile: .dockerignore
+    terminal:
+      command: ./devspace_start.sh
+    ssh:
+      enabled: true
+    proxyCommands:
+      - command: devspace
+      - command: kubectl
+      - command: helm
+      - command: git
+    ports:
+      - port: "2345"
+      - port: "8080"
+    open:
+      - url: http://localhost:8080
